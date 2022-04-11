@@ -12,13 +12,16 @@ use rand::prelude::*;
 
 fn naive_bayes(labels: Vec<&'static str>, data_path: &'static str) {
     let nb = Arc::new(Mutex::new(Some(NaiveBayes::new())));
-    let mut handles = vec![];
     let test_files = Arc::new(Mutex::new(Some(vec![])));
+    let jieba = Arc::new(Jieba::new());
 
-    for label in labels {
+    // Train.
+    let mut handles = vec![];
+    for (index, label) in labels.into_iter().enumerate() {
         let nb = nb.clone();
         let test_files = test_files.clone();
         let path = <&str>::clone(&data_path);
+        let jieba = jieba.clone();
         handles.push(thread::spawn(move || {
             let mut rng = thread_rng();
             let mut files = vec![];
@@ -26,21 +29,20 @@ fn naive_bayes(labels: Vec<&'static str>, data_path: &'static str) {
                 .unwrap()
                 .for_each(|file| {
                     let content = fs::read_to_string(file.unwrap().path()).unwrap();
-                    if rng.gen::<f64>() > 0.4 {
+                    if rng.gen::<f64>() > 0.8 {
                         test_files
                             .lock()
                             .unwrap()
                             .as_mut()
                             .unwrap()
-                            .push((label, content));
+                            .push((index, content));
                     } else {
                         files.push(content);
                     }
                 });
-            let jieba = Jieba::new();
             for file in files {
                 let words = jieba.cut(&file, false);
-                nb.lock().unwrap().as_mut().unwrap().train(words, label);
+                nb.lock().unwrap().as_mut().unwrap().train(words, index);
             }
         }));
     }
@@ -49,15 +51,18 @@ fn naive_bayes(labels: Vec<&'static str>, data_path: &'static str) {
     }
 
     let nb = Arc::new(nb.lock().unwrap().take().unwrap());
-    let mut handles = vec![];
     let test_files = test_files.lock().unwrap().take().unwrap();
+
     let total_count = test_files.len();
     let correct_count = Arc::new(Mutex::new(0));
+
+    // Test.
+    let mut handles = vec![];
     for (label, test_file) in test_files {
         let nb = nb.clone();
         let correct_count = correct_count.clone();
+        let jieba = jieba.clone();
         handles.push(thread::spawn(move || {
-            let jieba = Jieba::new();
             let words = jieba.cut(&test_file, false);
             let actual_label = nb.classify(words);
             if label == actual_label {

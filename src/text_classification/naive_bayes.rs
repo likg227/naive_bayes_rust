@@ -1,12 +1,9 @@
-use std::collections::hash_map::Keys;
 use std::collections::HashMap;
-use std::collections::HashSet;
-use std::iter::FromIterator;
 use std::vec::Vec;
 
 struct Attributes {
     // Mapping from attribute to label to its frequency.
-    attributes: HashMap<String, HashMap<String, i64>>,
+    attributes: HashMap<String, HashMap<usize, i64>>,
 }
 
 impl Attributes {
@@ -16,18 +13,18 @@ impl Attributes {
         }
     }
 
-    fn add(&mut self, attribute: &str, label: &str) {
+    fn add(&mut self, attribute: &str, label: usize) {
         let labels = self
             .attributes
             .entry(attribute.to_string())
             .or_insert_with(HashMap::new);
-        let value = labels.entry((*label).to_string()).or_insert(0);
+        let value = labels.entry(label).or_insert(0);
         *value += 1;
     }
 
-    fn get_frequency(&self, attribute: &str, label: &str) -> (Option<&i64>, bool) {
+    fn get_frequency(&self, attribute: &str, label: usize) -> (Option<&i64>, bool) {
         match self.attributes.get(attribute) {
-            Some(labels) => match labels.get(label) {
+            Some(labels) => match labels.get(&label) {
                 Some(value) => (Some(value), true),
                 None => (None, true),
             },
@@ -37,7 +34,7 @@ impl Attributes {
 }
 
 struct Labels {
-    counts: HashMap<String, i64>,
+    counts: HashMap<usize, i64>,
 }
 
 impl Labels {
@@ -47,17 +44,17 @@ impl Labels {
         }
     }
 
-    fn add(&mut self, label: &str) {
-        let value = self.counts.entry(label.to_string()).or_insert(0);
+    fn add(&mut self, label: usize) {
+        let value = self.counts.entry(label).or_insert(0);
         *value += 1;
     }
 
-    fn get_count(&self, label: &str) -> Option<&i64> {
-        self.counts.get(label)
+    fn get_count(&self, label: usize) -> Option<&i64> {
+        self.counts.get(&label)
     }
 
-    fn get_labels(&self) -> Keys<String, i64> {
-        self.counts.keys()
+    fn get_labels(&self) -> usize {
+        self.counts.len()
     }
 
     fn get_total(&self) -> i64 {
@@ -78,7 +75,7 @@ impl Model {
         }
     }
     // Give each attribute (i.e. a piece of data) a label and count its frequency.
-    fn train(&mut self, data: Vec<&str>, label: &str) {
+    fn train(&mut self, data: Vec<&str>, label: usize) {
         self.labels.add(label);
         for attribute in data {
             self.attributes.add(attribute, label);
@@ -106,7 +103,7 @@ impl NaiveBayes {
         }
     }
 
-    fn prior(&self, label: &str) -> Option<f64> {
+    fn prior(&self, label: usize) -> Option<f64> {
         let total = self.model.labels.get_total() as f64;
         let label = &self.model.labels.get_count(label);
         if label.is_some() && total > 0.0 {
@@ -116,7 +113,7 @@ impl NaiveBayes {
         }
     }
 
-    fn calculate_attr_prob(&self, attribute: &str, label: &str) -> Option<f64> {
+    fn calculate_attr_prob(&self, attribute: &str, label: usize) -> Option<f64> {
         match self.model.attributes.get_frequency(attribute, label) {
             (Some(frequency), true) => self
                 .model
@@ -129,8 +126,7 @@ impl NaiveBayes {
         }
     }
 
-    /// Given label, calculate the probability of attribute.
-    fn label_prob(&self, label: &str, attrs: Vec<&str>) -> Vec<f64> {
+    fn label_prob(&self, label: usize, attrs: Vec<&str>) -> Vec<f64> {
         let mut probs: Vec<f64> = Vec::new();
         for attr in attrs {
             if let Some(p) = self.calculate_attr_prob(attr, label) {
@@ -141,25 +137,32 @@ impl NaiveBayes {
         probs
     }
 
-    pub fn train(&mut self, data: Vec<&str>, label: &str) {
+    pub fn train(&mut self, data: Vec<&str>, label: usize) {
         self.model.train(data, label);
     }
 
-    pub fn classify(&self, data: Vec<&str>) -> String {
-        let mut result: String = String::new();
+    pub fn classify(&self, data: Vec<&str>) -> usize {
+        let mut result: usize = 0;
         let mut p_max: f64 = 0.0;
-        let labels: HashSet<String> =
-            HashSet::from_iter(self.model.labels.get_labels().into_iter().cloned());
-        for label in labels {
-            let p = self.label_prob(&label, data.clone());
+        // Error!
+        // (0..self.labels.len()).for_each(|label| {
+        //     let p = self.label_prob(label, data.clone());
+        //     let p_iter = p.into_iter().fold(1.0, |acc, x| acc * x);
+        //     let prob = p_iter * self.prior(label).unwrap();
+        //     if prob >= p_max {
+        //         p_max = prob;
+        //         result = label;
+        //     }
+        // });
+        for label in 0..self.model.labels.get_labels() {
+            let p = self.label_prob(label, data.clone());
             let p_iter = p.into_iter().fold(1.0, |acc, x| acc * x);
-            let prob = p_iter * self.prior(&label).unwrap();
+            let prob = p_iter * self.prior(label).unwrap();
             if prob >= p_max {
                 p_max = prob;
                 result = label;
             }
         }
-
         result
     }
 }

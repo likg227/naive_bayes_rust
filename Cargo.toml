@@ -7,5 +7,4 @@ edition = "2021"
 
 [dependencies]
 jieba-rs = { version = "0.6", features = ["tfidf"] }
-tokio = { version = "1", features = ["fs"]}
 rand = "0.8"
