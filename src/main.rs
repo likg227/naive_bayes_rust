@@ -10,36 +10,33 @@ use text_classification::naive_bayes::NaiveBayes;
 use jieba_rs::Jieba;
 use rand::prelude::*;
 
-fn main() {
+fn naive_bayes(labels: Vec<&'static str>, data_path: &'static str) {
     let nb = Arc::new(Mutex::new(Some(NaiveBayes::new())));
-    let labels: Vec<&str> = vec!["car", "game", "it", "military"];
     let mut handles = vec![];
     let test_files = Arc::new(Mutex::new(Some(vec![])));
 
     for label in labels {
         let nb = nb.clone();
         let test_files = test_files.clone();
+        let path = <&str>::clone(&data_path);
         handles.push(thread::spawn(move || {
             let mut rng = thread_rng();
             let mut files = vec![];
-            fs::read_dir(format!(
-                "/home/stephen/Code/naive_bayes_rust/data/{}",
-                label
-            ))
-            .unwrap()
-            .for_each(|file| {
-                let content = fs::read_to_string(file.unwrap().path()).unwrap();
-                if rng.gen::<f64>() > 0.85 {
-                    test_files
-                        .lock()
-                        .unwrap()
-                        .as_mut()
-                        .unwrap()
-                        .push((label, content));
-                } else {
-                    files.push(content);
-                }
-            });
+            fs::read_dir(format!("{}{}", path, label))
+                .unwrap()
+                .for_each(|file| {
+                    let content = fs::read_to_string(file.unwrap().path()).unwrap();
+                    if rng.gen::<f64>() > 0.4 {
+                        test_files
+                            .lock()
+                            .unwrap()
+                            .as_mut()
+                            .unwrap()
+                            .push((label, content));
+                    } else {
+                        files.push(content);
+                    }
+                });
             let jieba = Jieba::new();
             for file in files {
                 let words = jieba.cut(&file, false);
@@ -75,5 +72,18 @@ fn main() {
     println!(
         "正确率：{}%",
         *correct_count.lock().unwrap() as f64 / total_count as f64 * 100_f64
+    );
+}
+
+fn main() {
+    // 主题分类
+    naive_bayes(
+        vec!["car", "game", "it", "military"],
+        "/home/stephen/Code/naive_bayes_rust/data/topic_data/",
+    );
+    // 情感倾向
+    naive_bayes(
+        vec!["pos", "neg"],
+        "/home/stephen/Code/naive_bayes_rust/data/emotion_data/",
     );
 }
