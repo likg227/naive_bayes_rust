@@ -144,16 +144,6 @@ impl NaiveBayes {
     pub fn classify(&self, data: Vec<&str>) -> usize {
         let mut result: usize = 0;
         let mut p_max: f64 = 0.0;
-        // Error!
-        // (0..self.labels.len()).for_each(|label| {
-        //     let p = self.label_prob(label, data.clone());
-        //     let p_iter = p.into_iter().fold(1.0, |acc, x| acc * x);
-        //     let prob = p_iter * self.prior(label).unwrap();
-        //     if prob >= p_max {
-        //         p_max = prob;
-        //         result = label;
-        //     }
-        // });
         for label in 0..self.model.labels.get_labels() {
             let p = self.label_prob(label, data.clone());
             let p_iter = p.into_iter().fold(1.0, |acc, x| acc * x);

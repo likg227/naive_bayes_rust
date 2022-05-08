@@ -1,7 +1,7 @@
 use std::{
     fs,
     sync::{Arc, Mutex},
-    thread,
+    thread, vec,
 };
 
 mod text_classification;
@@ -29,7 +29,7 @@ fn naive_bayes(labels: Vec<&'static str>, data_path: &'static str) {
                 .unwrap()
                 .for_each(|file| {
                     let content = fs::read_to_string(file.unwrap().path()).unwrap();
-                    if rng.gen::<f64>() > 0.8 {
+                    if rng.gen::<f64>() > 0.80 {
                         test_files
                             .lock()
                             .unwrap()
@@ -81,14 +81,24 @@ fn naive_bayes(labels: Vec<&'static str>, data_path: &'static str) {
 }
 
 fn main() {
-    // 主题分类
+    // // 主题分类
+    // naive_bayes(
+    //     vec!["car", "game", "it", "military"],
+    //     "/Users/likaige/Code/course_design/naive_bayes_rust/data/topic_data/",
+    // );
+    // // 情感倾向
+    // naive_bayes(
+    //     vec!["pos", "neg"],
+    //     "/Users/likaige/Code/course_design/naive_bayes_rust/data/emotion_data/",
+    // );
+    // // 邮件分类
+    // naive_bayes(
+    //     vec!["spam", "norm"],
+    //     "/Users/likaige/Code/course_design/naive_bayes_rust/data/email_data/",
+    // );
+    // 短信分类
     naive_bayes(
-        vec!["car", "game", "it", "military"],
-        "/home/stephen/Code/naive_bayes_rust/data/topic_data/",
-    );
-    // 情感倾向
-    naive_bayes(
-        vec!["pos", "neg"],
-        "/home/stephen/Code/naive_bayes_rust/data/emotion_data/",
+        vec!["spam", "norm"],
+        "/Users/likaige/Code/course_design/naive_bayes_rust/data/short_message_data/",
     );
 }
